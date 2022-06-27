@@ -5,5 +5,6 @@ public class Main {
         Battleship game = new Battleship();
         game.printField();
         game.arrangeShip();
+        game.makeOneShot();
     }
 }

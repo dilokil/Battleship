@@ -56,25 +56,19 @@ public class Battleship {
             Scanner scanner = new Scanner(System.in);
             startCoordinates = scanner.next();
             endCoordinates = scanner.next();
-            isValidCoordinates = this.checkCoordinates(startCoordinates, endCoordinates, ship);
+            isValidCoordinates = this.setCoordinatesToShip(startCoordinates, endCoordinates, ship);
         }
         this.drawShip(ship);
     }
 
-    private boolean checkCoordinates(String startCoordinates, String endCoordinates, Ship ship) {
-        Coordinate start;
-        Coordinate end;
-        try {
-            start = new Coordinate(startCoordinates);
-            end = new Coordinate(endCoordinates);
-        } catch (NumberFormatException e) {
-            System.out.println("Error! Incorrect input! " + e.getMessage() + " Try again:");
+    private boolean setCoordinatesToShip(String startCoordinates, String endCoordinates, Ship ship) {
+
+        if (!this.checkCoordinate(startCoordinates) || !this.checkCoordinate(endCoordinates)) {
             return false;
         }
-        if (!start.checkRange() || !end.checkRange()) {
-            System.out.println("Error! Incorrect input! Out of range! Try again:");
-            return false;
-        }
+        Coordinate start = new Coordinate(startCoordinates);
+        Coordinate end = new Coordinate(endCoordinates);
+
         if (((end.getX() - start.getX() == 0) || (end.getY() - start.getY() == 0)) &&
                 ((Math.abs(end.getX() - start.getX()) == ship.getLength() - 1) ||
                         (Math.abs(end.getY() - start.getY()) == ship.getLength() - 1))) {
@@ -114,6 +108,43 @@ public class Battleship {
             }
         }
     }
+
+    public void makeOneShot() {
+        System.out.println("Take a shot!");
+        Scanner scanner = new Scanner(System.in);
+        boolean isValidCoordinate = false;
+        String stringCoordinates = "";
+        while (!isValidCoordinate) {
+            stringCoordinates = scanner.next();
+            isValidCoordinate = checkCoordinate(stringCoordinates);
+        }
+        Coordinate coordinate = new Coordinate(stringCoordinates);
+        if (this.field[coordinate.getX()][coordinate.getY()] == 'O') {
+            this.field[coordinate.getX()][coordinate.getY()] = 'X';
+            this.printField();// Убрать после тестирования
+            System.out.println("You hit a ship!");
+        } else {
+            this.field[coordinate.getX()][coordinate.getY()] = 'M';
+            this.printField();// Убрать после тестирования
+            System.out.println("You missed!");
+        }
+        // Убрать после тестирования
+    }
+
+    public boolean checkCoordinate(String strCoord) {
+        Coordinate coordinate;
+        try {
+            coordinate = new Coordinate(strCoord);
+        } catch (NumberFormatException e) {
+            System.out.println("Error! Incorrect input! " + e.getMessage() + " Try again:");
+            return false;
+        }
+        if (!coordinate.checkRange()) {
+            System.out.println("Error! Incorrect input! Out of range! Try again:");
+            return false;
+        }
+        return true;
+    }
 }
 
 class Coordinate {
@@ -139,7 +170,7 @@ class Coordinate {
     }
 
     public boolean checkRange() {
-        return (x >= 0 && x < 10) || (y >= 0 && y < 10);
+        return (x >= 0 && x < 10) && (y >= 0 && y < 10);
     }
 
     public void changeCoordinate(int newX, int newY) {
