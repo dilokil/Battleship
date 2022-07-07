@@ -1,20 +1,25 @@
 package Battleship;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Battleship {
     char[][] field;
+    char[][] fogOfWar;
     List<Ship> shipList;
+    boolean testing = false;
+    List<String[]> testInput;
+    int testIndex;
 
     public Battleship() {
         this.field = new char[10][10];
+        this.fogOfWar = new char[10][10];
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
-                field[i][j] = '~';
+                this.field[i][j] = '~';
+                this.fogOfWar[i][j] = '~';
             }
         }
+
 
         shipList = new ArrayList<>();
 
@@ -25,22 +30,56 @@ public class Battleship {
         shipList.add(new Ship("Destroyer", 2));
     }
 
+    public void Testing() {
+        testing = true;
+        testInput = new ArrayList<>(Arrays.asList(
+                new String[]{"F3", "F7"},
+                new String[]{"A1", "D1"},
+                new String[]{"J7", "J10"},
+                new String[]{"J10", "J8"},
+                new String[]{"B9", "D8"},
+                new String[]{"B9", "D9"},
+                new String[]{"E6", "D6"},
+                new String[]{"I2", "J2"},
+                new String[]{"Z1"},
+                new String[]{"A1"}
+        ));
+        testIndex = 0;
+        this.printField(false);
+        this.arrangeShip();
+        testing = false;
+        this.onePersonShot();
+    }
+
     public void arrangeShip() {
         for (Ship ship : shipList) {
             if (!ship.isOnField()) {
                 this.addToField(ship);
-                this.printField();
+                this.printField(false);
             }
         }
     }
 
-    public void printField() {
+    public void onePersonShot() {
+        printField(true);
+        System.out.println("Take a shot!");
+        while (shipList.size() != 0) {
+            makeOneShot();
+        }
+    }
+
+    public void printField(boolean isFogOfWar) {
         System.out.println("  1 2 3 4 5 6 7 8 9 10");
         char symb = 'A';
         for (int i = 0; i < 10; i++) {
             System.out.print(symb);
             for (int j = 0; j < 10; j++) {
-                System.out.print(" " + field[i][j]);
+                if (isFogOfWar) {
+                    System.out.print(" " + fogOfWar[i][j]);
+                } else {
+                    System.out.print(" " + field[i][j]);
+                }
+
             }
             symb++;
             System.out.println();
@@ -53,9 +92,15 @@ public class Battleship {
         String endCoordinates = "";
         System.out.printf("Enter the coordinates of the %s (%d cells):\n", ship.getMark(), ship.getLength());
         while (!isValidCoordinates) {
-            Scanner scanner = new Scanner(System.in);
-            startCoordinates = scanner.next();
-            endCoordinates = scanner.next();
+            if (testing) {
+                startCoordinates = testInput.get(testIndex)[0];
+                endCoordinates = testInput.get(testIndex)[1];
+                testIndex++;
+            } else {
+                Scanner scanner = new Scanner(System.in);
+                startCoordinates = scanner.next();
+                endCoordinates = scanner.next();
+            }
             isValidCoordinates = this.setCoordinatesToShip(startCoordinates, endCoordinates, ship);
         }
         this.drawShip(ship);
@@ -100,35 +145,57 @@ public class Battleship {
     }
 
     private void drawShip(Ship ship) {
-        Coordinate start = new Coordinate(ship.getStartCoordinates());
-        Coordinate end = new Coordinate(ship.getEndCoordinates());
-        for (int i = start.getX(); i <= end.getX(); i++) {
-            for (int j = start.getY(); j <= end.getY(); j++) {
-                this.field[i][j] = 'O';
-            }
+        Set<Coordinate> coordinates = ship.getCoordinates();
+        for (var coord : coordinates) {
+            this.field[coord.getX()][coord.getY()] = 'O';
         }
+
     }
 
-    public void makeOneShot() {
-        System.out.println("Take a shot!");
+    private void makeOneShot() {
+//        System.out.println("Take a shot!");
         Scanner scanner = new Scanner(System.in);
         boolean isValidCoordinate = false;
         String stringCoordinates = "";
         while (!isValidCoordinate) {
-            stringCoordinates = scanner.next();
+            if (testing) {
+                stringCoordinates = testInput.get(testIndex)[0];
+                testIndex++;
+            } else {
+                stringCoordinates = scanner.next();
+            }
             isValidCoordinate = checkCoordinate(stringCoordinates);
         }
         Coordinate coordinate = new Coordinate(stringCoordinates);
         if (this.field[coordinate.getX()][coordinate.getY()] == 'O') {
-            this.field[coordinate.getX()][coordinate.getY()] = 'X';
-            this.printField();// Убрать после тестирования
-            System.out.println("You hit a ship!");
+            this.fogOfWar[coordinate.getX()][coordinate.getY()] = 'X';
+
+            this.printField(true);// Убрать после тестирования
+            if (isShipDeath(coordinate)) {
+                if (shipList.size() == 0) {
+                    System.out.println("You sank the last ship. You won. Congratulations!");
+                } else {
+                    System.out.println("You sank a ship! Specify a new target:");
+                }
+            } else {
+                System.out.println("You hit a ship! Try again:");
+            }
+
         } else {
-            this.field[coordinate.getX()][coordinate.getY()] = 'M';
-            this.printField();// Убрать после тестирования
-            System.out.println("You missed!");
+            this.fogOfWar[coordinate.getX()][coordinate.getY()] = 'M';
+            this.printField(true);// Убрать после тестирования
+            System.out.println("You missed! Try again:");
         }
-        // Убрать после тестирования
+    }
+
+    private boolean isShipDeath(Coordinate coordinate) {
+        for (var ship : this.shipList) {
+            if (ship.isHit(coordinate) && ship.getHP() == 0) {
+                shipList.remove(ship);
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean checkCoordinate(String strCoord) {
@@ -204,10 +271,9 @@ class Coordinate {
 }
 
 class Ship {
-    private String mark;
-    private int length;
-    private Coordinate startCoordinates;
-    private Coordinate endCoordinates;
+    final private String mark;
+    final private int length;
+    private MyHashSet coordinate;
     private boolean onField;
 
     public Ship(String mark, int length) {
@@ -222,16 +288,20 @@ class Ship {
 
     public void setCoordinates(Coordinate startCoordinates, Coordinate endCoordinates) {
         this.onField = true;
-        this.startCoordinates = new Coordinate(startCoordinates);
-        this.endCoordinates = new Coordinate(endCoordinates);
+        this.coordinate = new MyHashSet();
+        for (int i = startCoordinates.getX(); i <= endCoordinates.getX(); i++) {
+            for (int j = startCoordinates.getY(); j <= endCoordinates.getY(); j++) {
+                coordinate.add(new Coordinate(i, j));
+            }
+        }
     }
 
-    public Coordinate getStartCoordinates() {
-        return startCoordinates;
+    public int getHP() {
+        return coordinate.size();
     }
 
-    public Coordinate getEndCoordinates() {
-        return endCoordinates;
+    public Set<Coordinate> getCoordinates() {
+        return coordinate;
     }
 
     public String getMark() {
@@ -242,5 +312,12 @@ class Ship {
         return length;
     }
 
+    public boolean isHit(Coordinate placeOfShot) {
+        if (coordinate.containsCoordinates(placeOfShot)) {
+            coordinate.removeCoordinates(placeOfShot);
+            return true;
+        }
+        return false;
+    }
 }
 
